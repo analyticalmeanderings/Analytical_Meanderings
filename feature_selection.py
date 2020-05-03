@@ -30,7 +30,7 @@ river = ""
 raw_hands = pd.DataFrame()
 
 # Computationaly intensive ETL code. The repository contains the output entitled "HANDS.csv"
-files = [str(item) for item in range(1,20)]
+files = [str(item) for item in range(1,2)]
 
 for file in files:
     raw_hands = raw_hands.append(
@@ -151,7 +151,6 @@ for line in raw_hands.iloc[:, 0]:
         hand = pd.merge(hand, player_data, on='Player Name', how='left')
         player_data = player_data.iloc[0:0]
         hand_history = hand_history.append(hand, ignore_index=True)
-
         hand = pd.DataFrame()
         position_counter = 0
         stage_counter = 0
@@ -166,78 +165,67 @@ for line in raw_hands.iloc[:, 0]:
 
 print(hand_history)
 
-hero_view = hand_history[hand_history['Action'] != 'small blind']
-hero_view = hero_view[hero_view['Action'] != 'big blind']
+hand_history = hand_history[hand_history['Action'] != 'small blind']
+hand_history = hand_history[hand_history['Action'] != 'big blind']
 
-# hero_view.to_csv('C:/poker/Just files/HANDS.csv')
-#
-# # This file is already heavily processed. I'll add the other processing code shortly
-# hero_view = pd.read_csv('C:/poker/Just files/HANDS.csv')
-#
-# # At the moment, we only focus on preflop decisions
-# hero_view = hero_view[hero_view['Stage']=='preflop'].reset_index(drop=True)
-#
-# # This function breaks down a card string (e.g. Ac) into a distint float value and a string for the suit
-# def card_breakdown(df, card, value_col, suit_col):
-# 	df[value_col] = df[df[card] != ""][card].str[:-1]
-# 	card_values = {'J': 11, 'Q': 12, 'K': 13, 'A': 14}
-# 	df[value_col].replace(card_values, inplace=True)
-# 	df[value_col] = df[value_col].astype('float')
-# 	df[suit_col] = df[df[card] != ""][card].str[-1]
-# 	return
-#
-# # Breaking down all the recorded card values
-# card_breakdown(hero_view, 'Card 1', 'Value 1', 'Suit 1')
-# card_breakdown(hero_view, 'Card 2', 'Value 2', 'Suit 2')
-# card_breakdown(hero_view, 'Flop 1', 'Value Flop1', 'Suit Flop1')
-# card_breakdown(hero_view, 'Flop 2', 'Value Flop2', 'Suit Flop2')
-# card_breakdown(hero_view, 'Flop 3', 'Value Flop3', 'Suit Flop3')
-# card_breakdown(hero_view, 'Turn', 'Value Turn', 'Suit Turn')
-# card_breakdown(hero_view, 'River', 'Value River', 'Suit River')
-#
-# # descriptive metrics for suits
-# def suitCounter(suit_string):
-# 	if len(suit_string) !=0:
-# 		return collections.Counter(suit_string).most_common(1)[0][1]
-# 	else:
-# 		return 0
-#
-# hero_view['Common Suits'] = hero_view['Suit Flop1'].fillna('') + hero_view['Suit Flop2'].fillna('') + hero_view['Suit Flop3'].fillna('') + hero_view['Suit Turn'].fillna('') + hero_view['Suit River'].fillna('')
-# hero_view['Player Suits'] = hero_view['Common Suits'] + hero_view['Suit 1'] + hero_view['Suit 2']
-# hero_view['Common Suits'] = hero_view['Common Suits'].apply(suitCounter)
-# hero_view['Player Suits'] = hero_view['Player Suits'].apply(suitCounter)
-#
-# hero_view['Gap'] = abs(hero_view['Value 1'] - hero_view['Value 2'])
-# hero_view['Raise Amount (BB)'] = (hero_view['Amount'] - hero_view['Amount to Call'])/hero_view['Big Blind']
-# hero_view['Raise Amount (BB)'] = hero_view['Raise Amount (BB)'].fillna(0)
-# hero_view.loc[hero_view['Raise Amount (BB)'] < 0, 'Raise Amount (BB)'] = 0
-#
-# features_pre = ['Value 1', 'Value 2', 'Player Suits', 'Big Blind', 'Amount to Call', 'Pot Size', 'Remaining Pre Action',
-# 					'Number of Players', 'Position', 'Active']
-#
-# features_post = features_pre + ['Value Flop1', 'Value Flop2', 'Value Flop3','Common Suits']
-# features_turn = features_post + ['Value Turn']
-# features_river = features_turn + ['Value River']
+hand_history.to_csv('C:/poker/anon_files/HANDS.csv')
+
+# This function breaks down a card string (e.g. Ac) into a distint float value and a string for the suit
+def card_breakdown(df, card, value_col, suit_col):
+	df[value_col] = df[df[card] != ""][card].str[:-1]
+	card_values = {'T': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14}
+	df[value_col].replace(card_values, inplace=True)
+	df[value_col] = df[value_col].astype('float')
+	df[suit_col] = df[df[card] != ""][card].str[-1]
+	return
+
+# Breaking down all the recorded card values
+card_breakdown(hand_history, 'Card 1', 'Value 1', 'Suit 1')
+card_breakdown(hand_history, 'Card 2', 'Value 2', 'Suit 2')
+card_breakdown(hand_history, 'Flop 1', 'Value Flop1', 'Suit Flop1')
+card_breakdown(hand_history, 'Flop 2', 'Value Flop2', 'Suit Flop2')
+card_breakdown(hand_history, 'Flop 3', 'Value Flop3', 'Suit Flop3')
+card_breakdown(hand_history, 'Turn', 'Value Turn', 'Suit Turn')
+card_breakdown(hand_history, 'River', 'Value River', 'Suit River')
+
+# descriptive metrics for suits
+def suitCounter(suit_string):
+	if len(suit_string) !=0:
+		return collections.Counter(suit_string).most_common(1)[0][1]
+	else:
+		return 0
+
+hand_history['Common Suits'] = hand_history['Suit Flop1'].fillna('') + hand_history['Suit Flop2'].fillna('') + hand_history['Suit Flop3'].fillna('') + hand_history['Suit Turn'].fillna('') + hand_history['Suit River'].fillna('')
+hand_history['Player Suits'] = hand_history['Common Suits'] + hand_history['Suit 1'] + hand_history['Suit 2']
+hand_history['Common Suits'] = hand_history['Common Suits'].apply(suitCounter)
+hand_history['Player Suits'] = hand_history['Player Suits'].apply(suitCounter)
+
+features_pre = ['Value 1', 'Value 2', 'Player Suits', 'Amount to Call', 'Pot Size', 'Remaining Pre Action',
+					'Number of Players', 'Position', 'Active']
+
+features_post = features_pre + ['Value Flop1', 'Value Flop2', 'Value Flop3','Common Suits']
+features_turn = features_post + ['Value Turn']
+features_river = features_turn + ['Value River']
 #
 # model_features = {'preflop':features_pre, 'flop':features_post, 'turn':features_turn, 'river':features_river}
 #
-# hero_view['actions'] = hero_view['Action']
-# hero_view = pd.get_dummies(hero_view, columns=['Action'])
+# hand_history['actions'] = hand_history['Action']
+# hand_history = pd.get_dummies(hand_history, columns=['Action'])
 #
 # labels_col = ['Action_ calls ', 'Action_ checks', 'Action_ folds', 'Action_ raises ', 'Raise Amount (BB)']
-# labels = hero_view.loc[:, labels_col]
+# labels = hand_history.loc[:, labels_col]
 #
 # # This code block scales and transforms features and labels into normally distributed data
 # # Without the normalization, our MLP algorthirm throws errors
 # scaler = StandardScaler()
-# scaler = scaler.fit(hero_view[features_pre])
-# standardized = scaler.transform(hero_view[features_pre])
+# scaler = scaler.fit(hand_history[features_pre])
+# standardized = scaler.transform(hand_history[features_pre])
 #
 # scaler_label = StandardScaler()
 # scaler_label = scaler_label.fit(labels)
 # labels = scaler_label.transform(labels)
 #
-# highest_train_row = int(hero_view.shape[0] * .80)
+# highest_train_row = int(hand_history.shape[0] * .80)
 # train_x = standardized[0:highest_train_row]
 # test_x = standardized[highest_train_row:]
 # train_y = labels[0:highest_train_row]
@@ -260,7 +248,7 @@ hero_view = hero_view[hero_view['Action'] != 'big blind']
 # ML_results = predictions.iloc[:,:4].idxmax(axis=1)
 #
 # test_results = pd.DataFrame({
-#     "Action":hero_view.loc[highest_train_row:,'actions'].reset_index(drop=True),
+#     "Action":hand_history.loc[highest_train_row:,'actions'].reset_index(drop=True),
 #     "ML_results":ML_results,
 #     "lin_results":lin_results})
 #
@@ -270,14 +258,14 @@ hero_view = hero_view[hero_view['Action'] != 'big blind']
 # print(test_results)
 # print(lin_acc)
 # print(ML_acc)
-# hero_view.to_csv('C:/poker/Just files/processeddata.csv')
+# hand_history.to_csv('C:/poker/Just files/processeddata.csv')
 #
 # ML = test_results.pivot_table(index='Action', columns='ML_results', aggfunc='size', fill_value=0)
 # lin = test_results.pivot_table(index='Action', columns='lin_results', aggfunc='size', fill_value=0)
 # print(ML)
 # print(lin)
 #
-# viz = hero_view[features_pre]
+# viz = hand_history[features_pre]
 #
 # # Compute the correlation matrix
 # corr = viz.corr()
@@ -291,7 +279,7 @@ hero_view = hero_view[hero_view['Action'] != 'big blind']
 #             square=True, linewidths=.5, cbar_kws={"shrink": .5})
 # plt.show()
 #
-# viz = hero_view[hero_view['Pot Size']<=5]
+# viz = hand_history[hand_history['Pot Size']<=5]
 #
 # plt.scatter(viz['Amount to Call'], viz['Pot Size'], s=0.5)
 # plt.title('Comparing Pot Size to Amount to Call')
@@ -300,7 +288,7 @@ hero_view = hero_view[hero_view['Action'] != 'big blind']
 # plt.show()
 #
 #
-# pivot1 = hero_view.pivot_table(index=['Value 1', 'Value 2'], columns='actions', aggfunc='size', fill_value=0)
+# pivot1 = hand_history.pivot_table(index=['Value 1', 'Value 2'], columns='actions', aggfunc='size', fill_value=0)
 # pivot1 = pivot1.reset_index()
 # pivot1['Count'] = (pivot1[' calls ']+pivot1[' checks']+pivot1[' raises ']+pivot1[' folds'])
 # pivot1['Agg'] = (pivot1[' raises ']+0.75*pivot1[' calls ']+0.5*pivot1[' checks'])/(pivot1['Count'])
@@ -310,7 +298,7 @@ hero_view = hero_view[hero_view['Action'] != 'big blind']
 # plt.ylabel('Value of Card 2')
 # plt.show()
 #
-# pivot1 = hero_view.pivot_table(index=['Number of Players', 'Position'], columns='actions', aggfunc='size', fill_value=0)
+# pivot1 = hand_history.pivot_table(index=['Number of Players', 'Position'], columns='actions', aggfunc='size', fill_value=0)
 # pivot1 = pivot1.reset_index()
 # pivot1['Count'] = (pivot1[' calls ']+pivot1[' checks']+pivot1[' raises ']+pivot1[' folds'])
 # pivot1['Agg'] = (pivot1[' raises ']+0.75*pivot1[' calls ']+0.5*pivot1[' checks'])/(pivot1['Count'])
