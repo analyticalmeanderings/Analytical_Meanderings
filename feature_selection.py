@@ -39,8 +39,9 @@ files = [str(item) for item in range(1,20)]
 indexy = 0
 for file in files:
     raw_hands = raw_hands.append(
-        pd.read_csv('C:/poker/Just files/' + file + '.txt', header=None, error_bad_lines=False, warn_bad_lines=False),
+        pd.read_csv('C:/poker/anon_files/' + file + '.txt', header=None, error_bad_lines=False, warn_bad_lines=False),
         ignore_index=True)
+print(raw_hands)
 
 # for line in raw_hands.iloc[:, 0]:
 #     indexy +=1
