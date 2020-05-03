@@ -21,16 +21,9 @@ num_players = 0
 # active_infront = 0
 # actions = [' allin ', ' bets ', ' calls ', ' checks', ' folds', ' raises ']
 # stage = ['blinds','preflop', 'flop', 'turn', 'river']
-# stage_counter = 1
+stage_counter = 1
 # pot_size = 0
 # card_counter = True
-# flop1 = ""
-# flop2 = ""
-# flop3 = ""
-# turn = ""
-# river = ""
-# suits = ["c", "d", "s", "h"]
-# cards = [(str(rank)+suit) for rank in range(2,15) for suit in suits]
 raw_hands = pd.DataFrame()
 
 # Computationaly intensive ETL code. The repository contains the output entitled "HANDS.csv"
@@ -41,6 +34,7 @@ for file in files:
         pd.read_csv('C:/poker/anon_files/' + file + '.txt', header=None, error_bad_lines=False, warn_bad_lines=False),
         ignore_index=True)
 
+# I need to learn regex
 for line in raw_hands.iloc[:, 0]:
 
     if 'PokerStars Hand #' in line:
@@ -51,7 +45,6 @@ for line in raw_hands.iloc[:, 0]:
 
     elif 'is the button' in line:
         button = int(line.split()[-4].split("#")[1])
-        print(button)
 
     elif re.search(r'Seat [0-9]+:' and r'in chips', line):
         num_players += 1
@@ -144,19 +137,19 @@ for line in raw_hands.iloc[:, 0]:
 #                 index += 1
 #                 break
 #
-#     elif '*** FLOP ***' in line:
-#         flop1 = line.split()[-1][:-1]
-#         flop2 = line.split()[-2]
-#         flop3 = line.split()[-3][1:]
-#         stage_counter += 1
-#
-#     elif '*** TURN ***' in line:
-#         turn = line.split()[-1][1:-1]
-#         stage_counter += 1
-#
-#     elif '*** RIVER ***' in line:
-#         river = line.split()[-1][1:-1]
-#         stage_counter += 1
+    elif '*** FLOP ***' in line:
+        flop1 = line.split()[-1][:-1]
+        flop2 = line.split()[-2]
+        flop3 = line.split()[-3][1:]
+        stage_counter += 1
+
+    elif '*** TURN ***' in line:
+        turn = line.split()[-1][1:-1]
+        stage_counter += 1
+
+    elif '*** RIVER ***' in line:
+        river = line.split()[-1][1:-1]
+        stage_counter += 1
 #
 #     elif 'Game ended at:' in line:
 #         hand['Number of Players'] = num_players
