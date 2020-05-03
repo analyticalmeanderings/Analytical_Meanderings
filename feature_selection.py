@@ -36,19 +36,17 @@ raw_hands = pd.DataFrame()
 
 # Computationaly intensive ETL code. The repository contains the output entitled "HANDS.csv"
 files = [str(item) for item in range(1,20)]
-indexy = 0
+
 for file in files:
     raw_hands = raw_hands.append(
         pd.read_csv('C:/poker/anon_files/' + file + '.txt', header=None, error_bad_lines=False, warn_bad_lines=False),
         ignore_index=True)
-print(raw_hands)
 
-# for line in raw_hands.iloc[:, 0]:
-#     indexy +=1
-#     print(indexy)
-#     if 'Game started at' in line:
-#         start_time = line.split('at: ')[1]
-#         start_time = datetime.strptime(start_time, '%Y/%m/%d %H:%M:%S')
+for line in raw_hands.iloc[:, 0]:
+
+    if 'PokerStars Hand #' in line:
+        game_id = line.split('#')[1].split(":")[0]
+        print(game_id)
 #     elif 'Game ID:' in line:
 #         game_id = int(line.split()[2])
 #         blinds = float(line.split()[3].split("/")[1])
