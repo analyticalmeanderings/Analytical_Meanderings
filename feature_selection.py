@@ -15,14 +15,14 @@ player_data = pd.DataFrame()
 hand = pd.DataFrame()
 hand_history = pd.DataFrame()
 
-# index = 0
+index = 0
 num_players = 0
-# position_counter = 0
+position_counter = 0
 # active_infront = 0
-# actions = [' allin ', ' bets ', ' calls ', ' checks', ' folds', ' raises ']
-# stage = ['blinds','preflop', 'flop', 'turn', 'river']
-stage_counter = 1
-# pot_size = 0
+# actions = [' bets ', ' calls ', ' checks', ' folds', ' raises ']
+stage = ['blinds','preflop', 'flop', 'turn', 'river']
+stage_counter = 0
+pot_size = 0
 # card_counter = True
 raw_hands = pd.DataFrame()
 
@@ -40,13 +40,10 @@ for line in raw_hands.iloc[:, 0]:
     if 'PokerStars Hand #' in line:
         game_id = line.split('#')[1].split(":")[0]
 
-    elif 'posts big blind' in line:
-        big_blind = float(line.split()[-1].split("$")[1])
-
     elif 'is the button' in line:
         button = int(line.split()[-4].split("#")[1])
 
-    elif re.search(r'Seat [0-9]+:' and r'in chips', line):
+    elif re.search(r'Seat [0-9]+:' and 'in chips', line):
         num_players += 1
         split = line.split()
 
@@ -54,27 +51,27 @@ for line in raw_hands.iloc[:, 0]:
             "Player Name": str(split[2]),
             "Starting Stack": float(split[-3][2:]),
             "Position": 100,
-            "Game ID": game_id,
-        }, index=[0])
-        # for appending df2 at the end of df1
+            "Card 1": '',
+            "Card 2": '',
+            "Game ID": game_id,}, index=[0])
+
         player_data = player_data.append(current_player, ignore_index=True)
-#
-#     elif re.search(r'has [a-z]+ blind', line):
-#         hand.loc[index, 'Player Name'] = line.split()[1]
-#         hand.loc[index, 'Action'] = line.split()[-3] + ' blind'
-#         hand.loc[index, 'Amount'] = float(line.split()[-1][1:-1])
-#         hand.loc[index, 'Stage'] = stage[stage_counter]
-#         hand.loc[index, 'Pot Size'] = pot_size
-#         pot_size += hand.loc[index, 'Amount']
-#         hand.loc[index, 'Invested Post Action'] = hand.loc[index, 'Amount']
-#         hand.loc[index, 'Starting Stack'] = player_data[player_data['Player Name'] == line.split()[1]][
-#             'Starting Stack'].sum()
-#         hand.loc[index, 'Invested Pre Action'] = 0
-#         hand.loc[index, 'Remaining Pre Action'] = hand.loc[index, 'Starting Stack']
-#         if player_data[player_data['Player Name'] == line.split()[1]].iloc[0, :].loc['Position'] == 100:
-#             player_data.loc[player_data['Player Name'] == line.split()[1], 'Position'] = position_counter
-#             position_counter += 1
-#         index += 1
+
+    elif re.search(r'posts [a-z]+ blind', line):
+        hand.loc[index, 'Player Name'] = line.split()[0].split(':')[0]
+        hand.loc[index, 'Action'] = line.split()[-3] + ' blind'
+        hand.loc[index, 'Amount'] = float(line.split()[-1][1:])
+        hand.loc[index, 'Stage'] = stage[stage_counter]
+        pot_size += hand.loc[index, 'Amount']
+        hand.loc[index, 'Invested Post Action'] = hand.loc[index, 'Amount']
+        hand.loc[index, 'Starting Stack'] = player_data[player_data['Player Name'] == hand.loc[index, 'Player Name']]['Starting Stack'].sum()
+        hand.loc[index, 'Invested Pre Action'] = 0
+        hand.loc[index, 'Remaining Pre Action'] = hand.loc[index, 'Starting Stack']
+
+        if player_data[player_data['Player Name'] == hand.loc[index, 'Player Name']].iloc[0, :].loc['Position'] == 100:
+            player_data.loc[player_data['Player Name'] == hand.loc[index, 'Player Name'], 'Position'] = position_counter
+            position_counter += 1
+        index += 1
 #
 #     elif 'Player IlxxxlI received' in line:
 #
@@ -150,25 +147,30 @@ for line in raw_hands.iloc[:, 0]:
     elif '*** RIVER ***' in line:
         river = line.split()[-1][1:-1]
         stage_counter += 1
-#
-#     elif 'Game ended at:' in line:
-#         hand['Number of Players'] = num_players
-#         hand = hand.drop('Starting Stack', axis=1)
-#         hand = pd.merge(hand, player_data, on='Player Name', how='left')
-#         player_data = player_data.iloc[0:0]
-#         hand_history = hand_history.append(hand, ignore_index=True)
-#
-#         hand = pd.DataFrame()
-#         position_counter = 0
-#         stage_counter = 1
-#         pot_size = 0
-#         num_players = 0
-#         active_infront = 0
-#         flop1 = ""
-#         flop2 = ""
-#         flop3 = ""
-#         turn = ""
-#         river = ""
+
+    elif '(a hand...)' in line:
+        name = line.split()[0].split(':')[0]
+        player_data.loc[player_data['Player Name'] == name, 'Card 1'] = 'asd'
+        print(player_data)
+
+    elif '*** SUMMARY ***' in line:
+        hand['Number of Players'] = num_players
+        hand = hand.drop('Starting Stack', axis=1)
+        hand = pd.merge(hand, player_data, on='Player Name', how='left')
+        player_data = player_data.iloc[0:0]
+        hand_history = hand_history.append(hand, ignore_index=True)
+
+        hand = pd.DataFrame()
+        position_counter = 0
+        stage_counter = 0
+        pot_size = 0
+        num_players = 0
+        active_infront = 0
+        flop1 = ""
+        flop2 = ""
+        flop3 = ""
+        turn = ""
+        river = ""
 #
 # hero_view = hand_history[hand_history['Player Name'] == 'IlxxxlI']
 # hero_view = hero_view[hero_view['Action'] != 'small blind']
