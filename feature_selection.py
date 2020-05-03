@@ -18,12 +18,15 @@ hand_history = pd.DataFrame()
 index = 0
 num_players = 0
 position_counter = 0
-# active_infront = 0
-# actions = [' bets ', ' calls ', ' checks', ' folds', ' raises ']
+active_infront = 0
 stage = ['blinds','preflop', 'flop', 'turn', 'river']
 stage_counter = 0
 pot_size = 0
-# card_counter = True
+flop1 = ""
+flop2 = ""
+flop3 = ""
+turn = ""
+river = ""
 raw_hands = pd.DataFrame()
 
 # Computationaly intensive ETL code. The repository contains the output entitled "HANDS.csv"
@@ -71,69 +74,59 @@ for line in raw_hands.iloc[:, 0]:
         if player_data[player_data['Player Name'] == hand.loc[index, 'Player Name']].iloc[0, :].loc['Position'] == 100:
             player_data.loc[player_data['Player Name'] == hand.loc[index, 'Player Name'], 'Position'] = position_counter
             position_counter += 1
+
         index += 1
-#
-#     elif 'Player IlxxxlI received' in line:
-#
-#         if (card_counter):
-#             first_card = {"Game ID": game_id, 'Card 1': line.split()[-1][1:-1]}
-#             hero_hands = hero_hands.append(first_card, ignore_index=True)
-#         else:
-#             hero_hands.loc[hero_hands["Game ID"] == game_id, 'Card 2'] = line.split()[-1][1:-1]
-#         card_counter = not card_counter
-#
-#     # this is sloppy
-#     elif any(ele in line for ele in actions):
-#         for ele in actions:
-#             if ele in line:
-#                 hand.loc[index, 'Player Name'] = line.split()[1]
-#                 hand.loc[index, 'Action'] = ele
-#                 hand.loc[index, 'Flop 1'] = flop1
-#                 hand.loc[index, 'Flop 2'] = flop2
-#                 hand.loc[index, 'Flop 3'] = flop3
-#                 hand.loc[index, 'Turn'] = turn
-#                 hand.loc[index, 'River'] = river
-#                 hand.loc[index, 'Active'] = active_infront
-#
-#                 # For simplicity, we can merge the allin and bet action to raise
-#                 if ele == ' allin ' or ele == ' bets ':
-#                     hand.loc[index, 'Action'] = ' raises '
-#
-#                 hand.loc[index, 'Stage'] = stage[stage_counter]
-#
-#                 prior_action = hand[hand['Player Name'] == line.split()[1]]['Invested Post Action'].max()
-#
-#                 if math.isnan(prior_action):
-#                     prior_action = 0
-#                 hand.loc[index, 'Invested Pre Action'] = prior_action
-#
-#                 hand.loc[index, 'Starting Stack'] = player_data[player_data['Player Name'] == line.split()[1]][
-#                     'Starting Stack'].sum()
-#                 hand.loc[index, 'Remaining Pre Action'] = hand.loc[index, 'Starting Stack'] - hand.loc[
-#                     index, 'Invested Pre Action']
-#                 hand.loc[index, 'Pot Size'] = pot_size
-#                 hand.loc[index, 'Amount to Call'] = hand['Invested Post Action'].max() - prior_action
-#
-#                 if ele == ' raises ' or ele == ' bets ' or ele == ' allin ' or ele == ' calls ':
-#                     hand.loc[index, 'Amount'] = float(line.split()[-1][1:-1])
-#                     prior_stage = hand[hand['Stage'] == stage[stage_counter - 1]]['Invested Post Action'].max()
-#                     active_infront += 1
-#
-#                     if math.isnan(prior_stage):
-#                         prior_stage = 0
-#
-#                     hand.loc[index, 'Invested Post Action'] = hand.loc[index, 'Amount'] + prior_stage
-#                     pot_size += hand.loc[index, 'Invested Post Action'] - hand.loc[index, 'Invested Pre Action']
-#
-#                 elif ele == ' folds' or ele == ' checks':
-#                     hand.loc[index, 'Invested Post Action'] = hand.loc[index, 'Invested Pre Action']
-#
-#                 if player_data[player_data['Player Name'] == line.split()[1]].iloc[0, :].loc['Position'] == 100:
-#                     player_data.loc[player_data['Player Name'] == line.split()[1], 'Position'] = position_counter
-#                     position_counter += 1
-#                 index += 1
-#                 break
-#
+
+        if 'posts big blind' in line:
+            stage_counter += 1
+
+    elif 'checks' in line or 'calls' in line or 'bets' in line or 'raises' in line:
+        hand.loc[index, 'Player Name'] = line.split()[0].split(':')[0]
+        hand.loc[index, 'Flop 1'] = flop1
+        hand.loc[index, 'Flop 2'] = flop2
+        hand.loc[index, 'Flop 3'] = flop3
+        hand.loc[index, 'Turn'] = turn
+        hand.loc[index, 'River'] = river
+        hand.loc[index, 'Active'] = active_infront
+        hand.loc[index, 'Stage'] = stage[stage_counter]
+
+        if player_data[player_data['Player Name'] == hand.loc[index, 'Player Name']].iloc[0, :].loc['Position'] == 100:
+            player_data.loc[player_data['Player Name'] == hand.loc[index, 'Player Name'], 'Position'] = position_counter
+            position_counter += 1
+
+        prior_action = hand[hand['Player Name'] == hand.loc[index, 'Player Name']]['Invested Post Action'].max()
+        if math.isnan(prior_action):
+            prior_action = 0
+        hand.loc[index, 'Invested Pre Action'] = prior_action
+
+        hand.loc[index, 'Starting Stack'] = player_data[player_data['Player Name'] == line.split()[1]]['Starting Stack'].sum()
+        hand.loc[index, 'Remaining Pre Action'] = hand.loc[index, 'Starting Stack'] - hand.loc[index, 'Invested Pre Action']
+        hand.loc[index, 'Pot Size'] = pot_size
+        hand.loc[index, 'Amount to Call'] = hand['Invested Post Action'].max() - prior_action
+
+        if 'folds' in line:
+            hand.loc[index, 'Action'] = 'folds'
+            hand.loc[index, 'Invested Post Action'] = hand.loc[index, 'Invested Pre Action']
+        elif 'checks' in line or 'calls' in line:
+            hand.loc[index, 'Action'] = 'calls'
+            hand.loc[index, 'Invested Post Action'] = hand.loc[index, 'Invested Pre Action'] + hand.loc[index, 'Amount to Call']
+            active_infront += 1
+        elif 'bets' in line or 'raises' in line:
+            hand.loc[index, 'Action'] = 'raises'
+            hand.loc[index, 'Amount'] = float(line.split('$')[-1].split()[0])
+            active_infront += 1
+
+            prior_stage = hand[hand['Stage'] == stage[stage_counter - 1]]['Invested Post Action'].max()
+
+            if math.isnan(prior_stage):
+                prior_stage = 0
+
+            hand.loc[index, 'Invested Post Action'] = hand.loc[index, 'Amount'] + prior_stage
+            pot_size += hand.loc[index, 'Invested Post Action'] - hand.loc[index, 'Invested Pre Action']
+
+        index += 1
+
+
     elif '*** FLOP ***' in line:
         flop1 = line.split()[-1][:-1]
         flop2 = line.split()[-2]
@@ -150,12 +143,11 @@ for line in raw_hands.iloc[:, 0]:
 
     elif '(a hand...)' in line:
         name = line.split()[0].split(':')[0]
-        player_data.loc[player_data['Player Name'] == name, 'Card 1'] = 'asd'
-        print(player_data)
+        player_data.loc[player_data['Player Name'] == name, 'Card 1'] = line.split()[-4][1:]
+        player_data.loc[player_data['Player Name'] == name, 'Card 2'] = line.split()[-3][:-1]
 
     elif '*** SUMMARY ***' in line:
         hand['Number of Players'] = num_players
-        hand = hand.drop('Starting Stack', axis=1)
         hand = pd.merge(hand, player_data, on='Player Name', how='left')
         player_data = player_data.iloc[0:0]
         hand_history = hand_history.append(hand, ignore_index=True)
@@ -171,13 +163,12 @@ for line in raw_hands.iloc[:, 0]:
         flop3 = ""
         turn = ""
         river = ""
-#
-# hero_view = hand_history[hand_history['Player Name'] == 'IlxxxlI']
-# hero_view = hero_view[hero_view['Action'] != 'small blind']
-# hero_view = hero_view[hero_view['Action'] != 'big blind']
-#
-# hero_view = pd.merge(hero_view, hero_hands, on='Game ID').reset_index(drop=True)
-#
+
+print(hand_history)
+
+hero_view = hand_history[hand_history['Action'] != 'small blind']
+hero_view = hero_view[hero_view['Action'] != 'big blind']
+
 # hero_view.to_csv('C:/poker/Just files/HANDS.csv')
 #
 # # This file is already heavily processed. I'll add the other processing code shortly
