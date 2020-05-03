@@ -7,7 +7,6 @@ from sklearn.linear_model import LinearRegression
 from sklearn.neural_network import MLPRegressor
 import matplotlib.pyplot as plt
 import seaborn as sns
-from datetime import datetime
 import re
 import math
 
@@ -17,7 +16,7 @@ hand = pd.DataFrame()
 hand_history = pd.DataFrame()
 
 # index = 0
-# num_players = 0
+num_players = 0
 # position_counter = 0
 # active_infront = 0
 # actions = [' allin ', ' bets ', ' calls ', ' checks', ' folds', ' raises ']
@@ -46,27 +45,26 @@ for line in raw_hands.iloc[:, 0]:
 
     if 'PokerStars Hand #' in line:
         game_id = line.split('#')[1].split(":")[0]
-        print(game_id)
-#     elif 'Game ID:' in line:
-#         game_id = int(line.split()[2])
-#         blinds = float(line.split()[3].split("/")[1])
-#
-#     elif re.search(r'Seat [0-9]+:', line):
-#         num_players += 1
-#         split = line.split()
-#         # Creating the Second Dataframe using dictionary
-#
-#         current_player = pd.DataFrame({
-#             "Player Name": str(split[2]),
-#             "Starting Stack": float(split[-1][1:-2]),
-#             # is Nan faster?!?
-#             "Position": 100,
-#             "Start Time": start_time,
-#             "Game ID": game_id,
-#             "Big Blind": blinds
-#         }, index=[0])
-#         # for appending df2 at the end of df1
-#         player_data = player_data.append(current_player, ignore_index=True)
+
+    elif 'posts big blind' in line:
+        big_blind = float(line.split()[-1].split("$")[1])
+
+    elif 'is the button' in line:
+        button = int(line.split()[-4].split("#")[1])
+        print(button)
+
+    elif re.search(r'Seat [0-9]+:' and r'in chips', line):
+        num_players += 1
+        split = line.split()
+
+        current_player = pd.DataFrame({
+            "Player Name": str(split[2]),
+            "Starting Stack": float(split[-3][2:]),
+            "Position": 100,
+            "Game ID": game_id,
+        }, index=[0])
+        # for appending df2 at the end of df1
+        player_data = player_data.append(current_player, ignore_index=True)
 #
 #     elif re.search(r'has [a-z]+ blind', line):
 #         hand.loc[index, 'Player Name'] = line.split()[1]
