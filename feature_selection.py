@@ -30,7 +30,7 @@ river = ""
 raw_hands = pd.DataFrame()
 
 # Computationaly intensive ETL code. The repository contains the output entitled "HANDS.csv"
-files = [str(item) for item in range(1,2)]
+files = [str(item) for item in range(1,20)]
 
 for file in files:
     raw_hands = raw_hands.append(
@@ -110,7 +110,8 @@ for line in raw_hands.iloc[:, 0]:
         elif 'checks' in line or 'calls' in line:
             hand.loc[index, 'Action'] = 'calls'
             hand.loc[index, 'Invested Post Action'] = hand.loc[index, 'Invested Pre Action'] + hand.loc[index, 'Amount to Call']
-            active_infront += 1
+            if 'calls' in line:
+                active_infront += 1
         elif 'bets' in line or 'raises' in line:
             hand.loc[index, 'Action'] = 'raises'
             hand.loc[index, 'Amount'] = float(line.split('$')[-1].split()[0])
@@ -148,6 +149,7 @@ for line in raw_hands.iloc[:, 0]:
 
     elif '*** SUMMARY ***' in line:
         hand['Number of Players'] = num_players
+        hand = hand.drop('Starting Stack', axis=1)
         hand = pd.merge(hand, player_data, on='Player Name', how='left')
         player_data = player_data.iloc[0:0]
         hand_history = hand_history.append(hand, ignore_index=True)
@@ -164,9 +166,8 @@ for line in raw_hands.iloc[:, 0]:
         river = ""
 
 hand_history = hand_history[hand_history['Action'] != 'small blind']
-hand_history = hand_history[hand_history['Action'] != 'big blind']
-
-hand_history.to_csv('C:/poker/anon_files/HANDS.csv')
+hand_history = hand_history[hand_history['Action'] != 'big blind'].reset_index(drop=True)
+hand_history = hand_history[hand_history['Stage']=='preflop'].reset_index(drop=True)
 
 # This function breaks down a card string (e.g. Ac) into a distint float value and a string for the suit
 def card_breakdown(df, card, value_col, suit_col):
@@ -198,17 +199,16 @@ hand_history['Player Suits'] = hand_history['Common Suits'] + hand_history['Suit
 hand_history['Common Suits'] = hand_history['Common Suits'].apply(suitCounter)
 hand_history['Player Suits'] = hand_history['Player Suits'].apply(suitCounter)
 hand_history['Raise Amount'] = hand_history['Amount'] - hand_history['Amount to Call']
-features_pre = ['Value 1', 'Value 2', 'Player Suits', 'Amount to Call', 'Pot Size', 'Remaining Pre Action', 'Position', 'Active']
-
-features_post = features_pre + ['Value Flop1', 'Value Flop2', 'Value Flop3','Common Suits']
-features_turn = features_post + ['Value Turn']
-features_river = features_turn + ['Value River']
+hand_history['Raise Amount'] = hand_history['Raise Amount'].fillna(0)
+features_pre = ['Value 1', 'Value 2', 'Player Suits', 'Amount to Call', 'Pot Size', 'Remaining Pre Action', 'Position', 'Active', 'Invested Pre Action', 'Starting Stack', 'Game ID']
 
 hand_history['actions'] = hand_history['Action']
 hand_history = pd.get_dummies(hand_history, columns=['Action'])
 
-labels_col = ['Action_folds ', 'Action_calls', 'Action_raises ', 'Raise Amount']
+labels_col = ['Action_calls', 'Action_folds', 'Action_raises', 'Raise Amount']
 labels = hand_history.loc[:, labels_col]
+
+hand_history.to_csv('C:/poker/anon_files/HANDS.csv')
 
 # This code block scales and transforms features and labels into normally distributed data
 # Without the normalization, our MLP algorthirm throws errors
@@ -226,21 +226,20 @@ test_x = standardized[highest_train_row:]
 train_y = labels[0:highest_train_row]
 test_y = labels[highest_train_row:]
 
-
 # Our linear regression code block
 lir = LinearRegression()
 lir.fit(train_x, train_y)
 predictions = lir.predict(test_x)
 predictions = scaler_label.inverse_transform(predictions)
-predictions = pd.DataFrame(predictions, columns = [' calls ', ' checks', ' folds', ' raises ', 'Raise Amount (BB)'])
-lin_results = predictions.iloc[:,:4].idxmax(axis=1)
+predictions = pd.DataFrame(predictions, columns = ['calls', 'folds', 'raises', 'Raise Amount'])
+lin_results = predictions.iloc[:,:3].idxmax(axis=1)
 
 mlp = MLPRegressor(hidden_layer_sizes=(100,100), activation='logistic', max_iter=2000)
 mlp.fit(train_x, train_y)
 predictions = mlp.predict(test_x)
 predictions = scaler_label.inverse_transform(predictions)
-predictions = pd.DataFrame(predictions, columns = [' calls ', ' checks', ' folds', ' raises ', 'Raise Amount (BB)'])
-ML_results = predictions.iloc[:,:4].idxmax(axis=1)
+predictions = pd.DataFrame(predictions, columns = ['calls', 'folds', 'raises', 'Raise Amount'])
+ML_results = predictions.iloc[:,:3].idxmax(axis=1)
 
 test_results = pd.DataFrame({
     "Action":hand_history.loc[highest_train_row:,'actions'].reset_index(drop=True),
@@ -250,55 +249,25 @@ test_results = pd.DataFrame({
 lin_acc = test_results[test_results['Action']==test_results['lin_results']].shape[0]/test_results.shape[0]
 ML_acc = test_results[test_results['Action']==test_results['ML_results']].shape[0]/test_results.shape[0]
 
-print(test_results)
 print(lin_acc)
 print(ML_acc)
-# hand_history.to_csv('C:/poker/Just files/processeddata.csv')
-#
-# ML = test_results.pivot_table(index='Action', columns='ML_results', aggfunc='size', fill_value=0)
-# lin = test_results.pivot_table(index='Action', columns='lin_results', aggfunc='size', fill_value=0)
-# print(ML)
-# print(lin)
-#
-# viz = hand_history[features_pre]
-#
-# # Compute the correlation matrix
-# corr = viz.corr()
-# mask = np.triu(np.ones_like(corr, dtype=np.bool))
-#
-# # Generate a custom diverging colormap
-# cmap = sns.diverging_palette(220, 10, as_cmap=True)
-#
-# # Draw the heatmap with the mask and correct aspect ratio
-# sns.heatmap(corr, mask=mask, cmap=cmap, vmax=.3, center=0,
-#             square=True, linewidths=.5, cbar_kws={"shrink": .5})
-# plt.show()
-#
-# viz = hand_history[hand_history['Pot Size']<=5]
-#
-# plt.scatter(viz['Amount to Call'], viz['Pot Size'], s=0.5)
-# plt.title('Comparing Pot Size to Amount to Call')
-# plt.xlabel('Amount to Call')
-# plt.ylabel('Pot Size')
-# plt.show()
-#
-#
-# pivot1 = hand_history.pivot_table(index=['Value 1', 'Value 2'], columns='actions', aggfunc='size', fill_value=0)
-# pivot1 = pivot1.reset_index()
-# pivot1['Count'] = (pivot1[' calls ']+pivot1[' checks']+pivot1[' raises ']+pivot1[' folds'])
-# pivot1['Agg'] = (pivot1[' raises ']+0.75*pivot1[' calls ']+0.5*pivot1[' checks'])/(pivot1['Count'])
-# plt.scatter(pivot1['Value 1'], pivot1['Value 2'], s=pivot1['Count'], c=pivot1['Agg'])
-# plt.title('Players Cards and Corresponding Actions')
-# plt.xlabel('Value of Card 1')
-# plt.ylabel('Value of Card 2')
-# plt.show()
-#
-# pivot1 = hand_history.pivot_table(index=['Number of Players', 'Position'], columns='actions', aggfunc='size', fill_value=0)
-# pivot1 = pivot1.reset_index()
-# pivot1['Count'] = (pivot1[' calls ']+pivot1[' checks']+pivot1[' raises ']+pivot1[' folds'])
-# pivot1['Agg'] = (pivot1[' raises ']+0.75*pivot1[' calls ']+0.5*pivot1[' checks'])/(pivot1['Count'])
-# plt.scatter(pivot1['Number of Players'], pivot1['Position'], s=pivot1['Count'], c=pivot1['Agg'])
-# plt.title('Number of Players, Position and Corresponding Actions')
-# plt.xlabel('Number of Players')
-# plt.ylabel('Position')
-# plt.show()
+hand_history.to_csv('C:/poker/anon_files/processeddata.csv')
+
+ML = test_results.pivot_table(index='Action', columns='ML_results', aggfunc='size', fill_value=0)
+lin = test_results.pivot_table(index='Action', columns='lin_results', aggfunc='size', fill_value=0)
+print(ML)
+print(lin)
+
+viz = hand_history[features_pre]
+
+# Compute the correlation matrix
+corr = viz.corr()
+mask = np.triu(np.ones_like(corr, dtype=np.bool))
+
+# Generate a custom diverging colormap
+cmap = sns.diverging_palette(220, 10, as_cmap=True)
+
+# Draw the heatmap with the mask and correct aspect ratio
+sns.heatmap(corr, mask=mask, cmap=cmap, vmax=.3, center=0,
+            square=True, linewidths=.5, cbar_kws={"shrink": .5})
+plt.show()
