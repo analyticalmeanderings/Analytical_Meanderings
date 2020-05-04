@@ -80,7 +80,7 @@ for line in raw_hands.iloc[:, 0]:
         if 'posts big blind' in line:
             stage_counter += 1
 
-    elif 'checks' in line or 'calls' in line or 'bets' in line or 'raises' in line:
+    elif 'folds' in line or 'checks' in line or 'calls' in line or 'bets' in line or 'raises' in line:
         hand.loc[index, 'Player Name'] = line.split()[0].split(':')[0]
         hand.loc[index, 'Flop 1'] = flop1
         hand.loc[index, 'Flop 2'] = flop2
@@ -163,8 +163,6 @@ for line in raw_hands.iloc[:, 0]:
         turn = ""
         river = ""
 
-print(hand_history)
-
 hand_history = hand_history[hand_history['Action'] != 'small blind']
 hand_history = hand_history[hand_history['Action'] != 'big blind']
 
@@ -199,65 +197,62 @@ hand_history['Common Suits'] = hand_history['Suit Flop1'].fillna('') + hand_hist
 hand_history['Player Suits'] = hand_history['Common Suits'] + hand_history['Suit 1'] + hand_history['Suit 2']
 hand_history['Common Suits'] = hand_history['Common Suits'].apply(suitCounter)
 hand_history['Player Suits'] = hand_history['Player Suits'].apply(suitCounter)
-
-features_pre = ['Value 1', 'Value 2', 'Player Suits', 'Amount to Call', 'Pot Size', 'Remaining Pre Action',
-					'Number of Players', 'Position', 'Active']
+hand_history['Raise Amount'] = hand_history['Amount'] - hand_history['Amount to Call']
+features_pre = ['Value 1', 'Value 2', 'Player Suits', 'Amount to Call', 'Pot Size', 'Remaining Pre Action', 'Position', 'Active']
 
 features_post = features_pre + ['Value Flop1', 'Value Flop2', 'Value Flop3','Common Suits']
 features_turn = features_post + ['Value Turn']
 features_river = features_turn + ['Value River']
-#
-# model_features = {'preflop':features_pre, 'flop':features_post, 'turn':features_turn, 'river':features_river}
-#
-# hand_history['actions'] = hand_history['Action']
-# hand_history = pd.get_dummies(hand_history, columns=['Action'])
-#
-# labels_col = ['Action_ calls ', 'Action_ checks', 'Action_ folds', 'Action_ raises ', 'Raise Amount (BB)']
-# labels = hand_history.loc[:, labels_col]
-#
-# # This code block scales and transforms features and labels into normally distributed data
-# # Without the normalization, our MLP algorthirm throws errors
-# scaler = StandardScaler()
-# scaler = scaler.fit(hand_history[features_pre])
-# standardized = scaler.transform(hand_history[features_pre])
-#
-# scaler_label = StandardScaler()
-# scaler_label = scaler_label.fit(labels)
-# labels = scaler_label.transform(labels)
-#
-# highest_train_row = int(hand_history.shape[0] * .80)
-# train_x = standardized[0:highest_train_row]
-# test_x = standardized[highest_train_row:]
-# train_y = labels[0:highest_train_row]
-# test_y = labels[highest_train_row:]
-#
-#
-# # Our linear regression code block
-# lir = LinearRegression()
-# lir.fit(train_x, train_y)
-# predictions = lir.predict(test_x)
-# predictions = scaler_label.inverse_transform(predictions)
-# predictions = pd.DataFrame(predictions, columns = [' calls ', ' checks', ' folds', ' raises ', 'Raise Amount (BB)'])
-# lin_results = predictions.iloc[:,:4].idxmax(axis=1)
-#
-# mlp = MLPRegressor(hidden_layer_sizes=(100,100), activation='logistic', max_iter=2000)
-# mlp.fit(train_x, train_y)
-# predictions = mlp.predict(test_x)
-# predictions = scaler_label.inverse_transform(predictions)
-# predictions = pd.DataFrame(predictions, columns = [' calls ', ' checks', ' folds', ' raises ', 'Raise Amount (BB)'])
-# ML_results = predictions.iloc[:,:4].idxmax(axis=1)
-#
-# test_results = pd.DataFrame({
-#     "Action":hand_history.loc[highest_train_row:,'actions'].reset_index(drop=True),
-#     "ML_results":ML_results,
-#     "lin_results":lin_results})
-#
-# lin_acc = test_results[test_results['Action']==test_results['lin_results']].shape[0]/test_results.shape[0]
-# ML_acc = test_results[test_results['Action']==test_results['ML_results']].shape[0]/test_results.shape[0]
-#
-# print(test_results)
-# print(lin_acc)
-# print(ML_acc)
+
+hand_history['actions'] = hand_history['Action']
+hand_history = pd.get_dummies(hand_history, columns=['Action'])
+
+labels_col = ['Action_folds ', 'Action_calls', 'Action_raises ', 'Raise Amount']
+labels = hand_history.loc[:, labels_col]
+
+# This code block scales and transforms features and labels into normally distributed data
+# Without the normalization, our MLP algorthirm throws errors
+scaler = StandardScaler()
+scaler = scaler.fit(hand_history[features_pre])
+standardized = scaler.transform(hand_history[features_pre])
+
+scaler_label = StandardScaler()
+scaler_label = scaler_label.fit(labels)
+labels = scaler_label.transform(labels)
+
+highest_train_row = int(hand_history.shape[0] * .80)
+train_x = standardized[0:highest_train_row]
+test_x = standardized[highest_train_row:]
+train_y = labels[0:highest_train_row]
+test_y = labels[highest_train_row:]
+
+
+# Our linear regression code block
+lir = LinearRegression()
+lir.fit(train_x, train_y)
+predictions = lir.predict(test_x)
+predictions = scaler_label.inverse_transform(predictions)
+predictions = pd.DataFrame(predictions, columns = [' calls ', ' checks', ' folds', ' raises ', 'Raise Amount (BB)'])
+lin_results = predictions.iloc[:,:4].idxmax(axis=1)
+
+mlp = MLPRegressor(hidden_layer_sizes=(100,100), activation='logistic', max_iter=2000)
+mlp.fit(train_x, train_y)
+predictions = mlp.predict(test_x)
+predictions = scaler_label.inverse_transform(predictions)
+predictions = pd.DataFrame(predictions, columns = [' calls ', ' checks', ' folds', ' raises ', 'Raise Amount (BB)'])
+ML_results = predictions.iloc[:,:4].idxmax(axis=1)
+
+test_results = pd.DataFrame({
+    "Action":hand_history.loc[highest_train_row:,'actions'].reset_index(drop=True),
+    "ML_results":ML_results,
+    "lin_results":lin_results})
+
+lin_acc = test_results[test_results['Action']==test_results['lin_results']].shape[0]/test_results.shape[0]
+ML_acc = test_results[test_results['Action']==test_results['ML_results']].shape[0]/test_results.shape[0]
+
+print(test_results)
+print(lin_acc)
+print(ML_acc)
 # hand_history.to_csv('C:/poker/Just files/processeddata.csv')
 #
 # ML = test_results.pivot_table(index='Action', columns='ML_results', aggfunc='size', fill_value=0)
