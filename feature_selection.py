@@ -4,13 +4,13 @@ import numpy as np
 import collections
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LinearRegression
-from sklearn.neural_network import MLPRegressor
+from sklearn.neural_network import MLPClassifier
 import matplotlib.pyplot as plt
 import seaborn as sns
 import re
 import math
 
-# Some initalizations to help our ETL phase
+# Some initializations to help our ETL phase
 player_data = pd.DataFrame()
 hand = pd.DataFrame()
 hand_history = pd.DataFrame()
@@ -30,7 +30,7 @@ river = ""
 raw_hands = pd.DataFrame()
 
 # Computationaly intensive ETL code. The repository contains the output entitled "HANDS.csv"
-files = [str(item) for item in range(1,20)]
+files = [str(item) for item in range(1,12)]
 
 for file in files:
     raw_hands = raw_hands.append(
@@ -169,7 +169,7 @@ hand_history = hand_history[hand_history['Action'] != 'small blind']
 hand_history = hand_history[hand_history['Action'] != 'big blind'].reset_index(drop=True)
 hand_history = hand_history[hand_history['Stage']=='preflop'].reset_index(drop=True)
 
-# This function breaks down a card string (e.g. Ac) into a distint float value and a string for the suit
+# This function breaks down a card string (e.g. Ac) into a distinct float value and a string for the suit
 def card_breakdown(df, card, value_col, suit_col):
 	df[value_col] = df[df[card] != ""][card].str[:-1]
 	card_values = {'T': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14}
@@ -200,25 +200,31 @@ hand_history['Common Suits'] = hand_history['Common Suits'].apply(suitCounter)
 hand_history['Player Suits'] = hand_history['Player Suits'].apply(suitCounter)
 hand_history['Raise Amount'] = hand_history['Amount'] - hand_history['Amount to Call']
 hand_history['Raise Amount'] = hand_history['Raise Amount'].fillna(0)
-features_pre = ['Value 1', 'Value 2', 'Player Suits', 'Amount to Call', 'Pot Size', 'Remaining Pre Action', 'Position', 'Active', 'Invested Pre Action', 'Starting Stack', 'Game ID']
+features_pre = ['Value 1', 'Value 2', 'Player Suits', 'Position', 'Amount to Call', 'Pot Size', 'Active', 'Invested Pre Action', 'Starting Stack', 'Game ID']
 
 hand_history['actions'] = hand_history['Action']
 hand_history = pd.get_dummies(hand_history, columns=['Action'])
 
-labels_col = ['Action_calls', 'Action_folds', 'Action_raises', 'Raise Amount']
-labels = hand_history.loc[:, labels_col]
+label_cols = ['Action_raises']
+labels = hand_history[label_cols]
 
-hand_history.to_csv('C:/poker/anon_files/HANDS.csv')
+# Compute the correlation matrix
+viz_components = features_pre + label_cols
+viz = hand_history[viz_components]
+corr = viz.corr()
+mask = np.triu(np.ones_like(corr, dtype=np.bool))
+# Generate a custom diverging colormap
+cmap = sns.diverging_palette(220, 10, as_cmap=True)
+# Draw the heatmap with the mask and correct aspect ratio
+sns.heatmap(corr, mask=mask, cmap=cmap, vmax=.3, center=0,square=True, linewidths=.5, cbar_kws={"shrink": .5})
+plt.tight_layout()
+plt.show()
 
-# This code block scales and transforms features and labels into normally distributed data
-# Without the normalization, our MLP algorthirm throws errors
+# This code block scales and transforms features into normally distributed data
+# Without the normalization, our MLP algorithm throws errors
 scaler = StandardScaler()
 scaler = scaler.fit(hand_history[features_pre])
 standardized = scaler.transform(hand_history[features_pre])
-
-scaler_label = StandardScaler()
-scaler_label = scaler_label.fit(labels)
-labels = scaler_label.transform(labels)
 
 highest_train_row = int(hand_history.shape[0] * .80)
 train_x = standardized[0:highest_train_row]
@@ -230,16 +236,12 @@ test_y = labels[highest_train_row:]
 lir = LinearRegression()
 lir.fit(train_x, train_y)
 predictions = lir.predict(test_x)
-predictions = scaler_label.inverse_transform(predictions)
-predictions = pd.DataFrame(predictions, columns = ['calls', 'folds', 'raises', 'Raise Amount'])
-lin_results = predictions.iloc[:,:3].idxmax(axis=1)
+lin_results = pd.DataFrame(predictions, columns = ['raises'])
 
-mlp = MLPRegressor(hidden_layer_sizes=(100,100), activation='logistic', max_iter=2000)
-mlp.fit(train_x, train_y)
+mlp = MLPClassifier(hidden_layer_sizes=(100,100), activation='logistic', max_iter=2000)
+mlp.fit(train_x, train_y.values.ravel())
 predictions = mlp.predict(test_x)
-predictions = scaler_label.inverse_transform(predictions)
-predictions = pd.DataFrame(predictions, columns = ['calls', 'folds', 'raises', 'Raise Amount'])
-ML_results = predictions.iloc[:,:3].idxmax(axis=1)
+ML_results = pd.DataFrame(predictions, columns = ['raises'])
 
 test_results = pd.DataFrame({
     "Action":hand_history.loc[highest_train_row:,'actions'].reset_index(drop=True),
@@ -257,17 +259,3 @@ ML = test_results.pivot_table(index='Action', columns='ML_results', aggfunc='siz
 lin = test_results.pivot_table(index='Action', columns='lin_results', aggfunc='size', fill_value=0)
 print(ML)
 print(lin)
-
-viz = hand_history[features_pre]
-
-# Compute the correlation matrix
-corr = viz.corr()
-mask = np.triu(np.ones_like(corr, dtype=np.bool))
-
-# Generate a custom diverging colormap
-cmap = sns.diverging_palette(220, 10, as_cmap=True)
-
-# Draw the heatmap with the mask and correct aspect ratio
-sns.heatmap(corr, mask=mask, cmap=cmap, vmax=.3, center=0,
-            square=True, linewidths=.5, cbar_kws={"shrink": .5})
-plt.show()
