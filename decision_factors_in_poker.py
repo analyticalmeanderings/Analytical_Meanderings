@@ -31,7 +31,7 @@ river = ""
 raw_hands = pd.DataFrame()
 
 # Computationaly intensive ETL code. The repository contains the output entitled "HANDS.csv"
-files = [str(item) for item in range(1, 2)]
+files = [str(item) for item in range(1, 20)]
 
 for file in files:
     raw_hands = raw_hands.append(
@@ -232,7 +232,7 @@ cmap = sns.diverging_palette(220, 10, as_cmap=True)
 # Draw the heatmap with the mask and correct aspect ratio
 sns.heatmap(corr, mask=mask, cmap=cmap, vmax=.3, center=0, square=True, linewidths=.5, cbar_kws={"shrink": .5})
 plt.tight_layout()
-plt.show()
+plt.show(block = False)
 
 # Perform feature selection
 selector = SelectKBest(chi2, k=3)
@@ -250,7 +250,7 @@ plt.xlabel('Chi2 Value')
 ax = plt.gca()
 ax.spines['right'].set_visible(False)
 ax.spines['top'].set_visible(False)
-plt.show()
+plt.show(block = False)
 
 # This code block scales and transforms features into normally distributed data
 # Without the normalization, our MLP algorithm throws errors
@@ -271,7 +271,7 @@ error_tracker = []
 for k_best in range(1,11):
     start = datetime.datetime.now()
     features = list(featureScores[-1*k_best:]['Feature'])
-    mlp = MLPClassifier(hidden_layer_sizes=(10, 10), activation='logistic', max_iter=2000)
+    mlp = MLPClassifier(hidden_layer_sizes=(100, 100), activation='logistic', max_iter=2000)
     mlp.fit(train_x[features], train_y.values.ravel())
     predictions = mlp.predict(test_x[features])
     ML_results = pd.DataFrame(predictions)
@@ -283,7 +283,9 @@ for k_best in range(1,11):
 plt.scatter(speed_tracker, error_tracker)
 plt.tight_layout()
 plt.xlabel('Computational Speed (seconds)')
+plt.xlabel('Error')
+plt.tight_layout()
 ax = plt.gca()
 ax.spines['right'].set_visible(False)
 ax.spines['top'].set_visible(False)
-plt.show()
+plt.show(block = False)
