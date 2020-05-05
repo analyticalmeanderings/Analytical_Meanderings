@@ -1,7 +1,7 @@
 # Analytical_Meanderings
 
-This repository stores a series of notebooks for the website: analyticalmeanderings.com
+This repository stores a series of notebooks for my website: [Analytical Meanderings](https://www.analyticalmeanderings.com)
 
-Decision Factor in Poker
+- [Decision Factors in Poker](https://github.com/mbc2010/Analytical_Meanderings/blob/master/decision_factors_in_poker.py)
 
-Pizza rat strikes again
+Pizza rat strikes again!
