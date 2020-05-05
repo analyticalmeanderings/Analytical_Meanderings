@@ -2,6 +2,6 @@
 
 This repository stores a series of notebooks for the website: analyticalmeanderings.com
 
-Should I Stay or Should I Fold?
+Decision Factor in Poker
 
 Pizza rat strikes again
