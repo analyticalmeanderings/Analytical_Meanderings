@@ -9,6 +9,7 @@ import seaborn as sns
 from sklearn.preprocessing import StandardScaler
 from sklearn.feature_selection import SelectKBest, chi2
 from sklearn.neural_network import MLPClassifier
+import datetime
 
 # Some initializations to help our ETL phase
 player_data = pd.DataFrame()
@@ -231,14 +232,14 @@ cmap = sns.diverging_palette(220, 10, as_cmap=True)
 # Draw the heatmap with the mask and correct aspect ratio
 sns.heatmap(corr, mask=mask, cmap=cmap, vmax=.3, center=0, square=True, linewidths=.5, cbar_kws={"shrink": .5})
 plt.tight_layout()
-plt.show()
+#plt.show()
 
 # Perform feature selection
 selector = SelectKBest(chi2, k=3)
 fit = selector.fit(hand_history[features_pre], labels)
 dfscores = pd.DataFrame(fit.scores_)
 dfcolumns = pd.DataFrame(hand_history[features_pre].columns)
-featureScores = pd.concat([dfcolumns,dfscores],axis=1)
+featureScores = pd.concat([dfcolumns, dfscores], axis=1)
 featureScores.columns = ['Feature', 'Score']
 featureScores = featureScores.sort_values(by=['Score'])
 y_pos = np.arange(len(featureScores['Feature']))
@@ -249,13 +250,14 @@ plt.xlabel('Chi2 Value')
 ax = plt.gca()
 ax.spines['right'].set_visible(False)
 ax.spines['top'].set_visible(False)
-plt.show()
+#plt.show()
 
 # This code block scales and transforms features into normally distributed data
 # Without the normalization, our MLP algorithm throws errors
 scaler = StandardScaler()
 scaler = scaler.fit(hand_history[features_pre])
 standardized = scaler.transform(hand_history[features_pre])
+standardized = pd.DataFrame(standardized, columns = [features_pre])
 
 highest_train_row = int(hand_history.shape[0] * .80)
 train_x = standardized[0:highest_train_row]
@@ -263,15 +265,24 @@ test_x = standardized[highest_train_row:]
 train_y = labels[0:highest_train_row]
 test_y = labels[highest_train_row:]
 
-mlp = MLPClassifier(hidden_layer_sizes=(100, 100), activation='logistic', max_iter=2000)
-mlp.fit(train_x, train_y.values.ravel())
-predictions = mlp.predict(test_x)
-ML_results = pd.DataFrame(predictions)
+speed_tracker = []
+error_tracker = []
 
-test_results = pd.DataFrame({
-    "Action_raises": hand_history.loc[highest_train_row:, 'Action_raises'].reset_index(drop=True),
-    "ML_results": ML_results})
+for k_best in range(1,11):
+    start = datetime.datetime.now()
+    features = list(featureScores[-1*k_best:]['Feature'])
+    mlp = MLPClassifier(hidden_layer_sizes=(10, 10), activation='logistic', max_iter=2000)
+    mlp.fit(train_x[features], train_y.values.ravel())
+    predictions = mlp.predict(test_x[features])
+    ML_results = pd.DataFrame(predictions)
+    test_results = pd.concat([hand_history.loc[highest_train_row:, 'Action_raises'].reset_index(drop=True), ML_results],axis=1)
+    ML_error = 1-test_results[test_results.iloc[:,0] == test_results.iloc[:,1]].shape[0] / test_results.shape[0]
+    error_tracker.append(ML_error)
+    print((datetime.datetime.now()-start).total_seconds())
+    speed_tracker.append((datetime.datetime.now()-start).total_seconds())
 
-ML_acc = test_results[test_results['Action_raises'] == test_results['ML_results']].shape[0] / test_results.shape[0]
+print(error_tracker)
+print(speed_tracker)
 
-print(ML_acc)
+sns.regplot(x=speed_tracker, y=error_tracker, fit_reg=False)
+sns.plt.show()
