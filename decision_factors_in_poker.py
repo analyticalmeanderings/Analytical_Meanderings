@@ -38,7 +38,7 @@ for file in files:
         pd.read_csv('C:/poker/anon_files/' + file + '.txt', header=None, error_bad_lines=False, warn_bad_lines=False),
         ignore_index=True)
 
-# I need to learn regex
+# Big loop to scan through file contents
 for line in raw_hands.iloc[:, 0]:
 
     if 'PokerStars Hand #' in line:
@@ -257,7 +257,7 @@ plt.show()
 scaler = StandardScaler()
 scaler = scaler.fit(hand_history[features_pre])
 standardized = scaler.transform(hand_history[features_pre])
-standardized = pd.DataFrame(standardized, columns = [features_pre])
+standardized = pd.DataFrame(standardized, columns=[features_pre])
 
 highest_train_row = int(hand_history.shape[0] * .80)
 train_x = standardized[0:highest_train_row]
@@ -281,9 +281,22 @@ for k_best in range(1,11):
     speed_tracker.append((datetime.datetime.now()-start).total_seconds())
 
 plt.scatter(speed_tracker, error_tracker)
+
+index = 0
+for speed, error in zip(speed_tracker, error_tracker):
+    index += 1
+    label = "{} Feature(s)".format(index)
+
+    # this method is called for each point
+    plt.annotate(label, # this is the text
+                 (speed, error), # this is the point to label
+                 textcoords="offset points", # how to position the text
+                 xytext=(0, 10), # distance from text to points (x,y)
+                 ha='center') # horizontal alignment can be left, right or center
+
 plt.tight_layout()
 plt.xlabel('Computational Speed (seconds)')
-plt.xlabel('Error')
+plt.ylabel('Error')
 plt.tight_layout()
 ax = plt.gca()
 ax.spines['right'].set_visible(False)
