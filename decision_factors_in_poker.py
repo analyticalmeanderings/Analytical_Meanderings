@@ -7,7 +7,6 @@ import collections
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.preprocessing import StandardScaler
-from sklearn.linear_model import LinearRegression
 from sklearn.feature_selection import SelectKBest, chi2
 from sklearn.neural_network import MLPClassifier
 
@@ -31,7 +30,7 @@ river = ""
 raw_hands = pd.DataFrame()
 
 # Computationaly intensive ETL code. The repository contains the output entitled "HANDS.csv"
-files = [str(item) for item in range(1, 20)]
+files = [str(item) for item in range(1, 2)]
 
 for file in files:
     raw_hands = raw_hands.append(
@@ -235,8 +234,22 @@ plt.tight_layout()
 plt.show()
 
 # Perform feature selection
-selector = SelectKBest(chi2, k=5)
-selector.fit(titanic[predictors], titanic["Survived"])
+selector = SelectKBest(chi2, k=3)
+fit = selector.fit(hand_history[features_pre], labels)
+dfscores = pd.DataFrame(fit.scores_)
+dfcolumns = pd.DataFrame(hand_history[features_pre].columns)
+featureScores = pd.concat([dfcolumns,dfscores],axis=1)
+featureScores.columns = ['Feature', 'Score']
+featureScores = featureScores.sort_values(by=['Score'])
+y_pos = np.arange(len(featureScores['Feature']))
+plt.barh(y_pos, featureScores['Score'])
+plt.yticks(y_pos, featureScores['Feature'])
+plt.tight_layout()
+plt.xlabel('Chi2 Value')
+ax = plt.gca()
+ax.spines['right'].set_visible(False)
+ax.spines['top'].set_visible(False)
+plt.show()
 
 # This code block scales and transforms features into normally distributed data
 # Without the normalization, our MLP algorithm throws errors
@@ -250,30 +263,15 @@ test_x = standardized[highest_train_row:]
 train_y = labels[0:highest_train_row]
 test_y = labels[highest_train_row:]
 
-# Our linear regression code block
-lir = LinearRegression()
-lir.fit(train_x, train_y)
-predictions = lir.predict(test_x)
-lin_results = pd.DataFrame(predictions, columns=['raises'])
-
 mlp = MLPClassifier(hidden_layer_sizes=(100, 100), activation='logistic', max_iter=2000)
 mlp.fit(train_x, train_y.values.ravel())
 predictions = mlp.predict(test_x)
-ML_results = pd.DataFrame(predictions, columns=['raises'])
+ML_results = pd.DataFrame(predictions)
 
 test_results = pd.DataFrame({
-    "Action": hand_history.loc[highest_train_row:, 'actions'].reset_index(drop=True),
-    "ML_results": ML_results,
-    "lin_results": lin_results})
+    "Action_raises": hand_history.loc[highest_train_row:, 'Action_raises'].reset_index(drop=True),
+    "ML_results": ML_results})
 
-lin_acc = test_results[test_results['Action'] == test_results['lin_results']].shape[0] / test_results.shape[0]
-ML_acc = test_results[test_results['Action'] == test_results['ML_results']].shape[0] / test_results.shape[0]
+ML_acc = test_results[test_results['Action_raises'] == test_results['ML_results']].shape[0] / test_results.shape[0]
 
-print(lin_acc)
 print(ML_acc)
-hand_history.to_csv('C:/poker/anon_files/processeddata.csv')
-
-ML = test_results.pivot_table(index='Action', columns='ML_results', aggfunc='size', fill_value=0)
-lin = test_results.pivot_table(index='Action', columns='lin_results', aggfunc='size', fill_value=0)
-print(ML)
-print(lin)
