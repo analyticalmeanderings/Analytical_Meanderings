@@ -232,7 +232,7 @@ cmap = sns.diverging_palette(220, 10, as_cmap=True)
 # Draw the heatmap with the mask and correct aspect ratio
 sns.heatmap(corr, mask=mask, cmap=cmap, vmax=.3, center=0, square=True, linewidths=.5, cbar_kws={"shrink": .5})
 plt.tight_layout()
-plt.show(block = False)
+plt.show()
 
 # Perform feature selection
 selector = SelectKBest(chi2, k=3)
@@ -250,7 +250,7 @@ plt.xlabel('Chi2 Value')
 ax = plt.gca()
 ax.spines['right'].set_visible(False)
 ax.spines['top'].set_visible(False)
-plt.show(block = False)
+plt.show()
 
 # This code block scales and transforms features into normally distributed data
 # Without the normalization, our MLP algorithm throws errors
@@ -288,4 +288,4 @@ plt.tight_layout()
 ax = plt.gca()
 ax.spines['right'].set_visible(False)
 ax.spines['top'].set_visible(False)
-plt.show(block = False)
+plt.show()
