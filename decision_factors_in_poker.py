@@ -284,5 +284,10 @@ for k_best in range(1,11):
 print(error_tracker)
 print(speed_tracker)
 
-sns.regplot(x=speed_tracker, y=error_tracker, fit_reg=False)
-sns.plt.show()
+plt.plot(speed_tracker, error_tracker)
+plt.tight_layout()
+plt.xlabel('Computational Speed (seconds)')
+ax = plt.gca()
+ax.spines['right'].set_visible(False)
+ax.spines['top'].set_visible(False)
+plt.show()
