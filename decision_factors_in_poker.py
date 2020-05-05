@@ -232,7 +232,7 @@ cmap = sns.diverging_palette(220, 10, as_cmap=True)
 # Draw the heatmap with the mask and correct aspect ratio
 sns.heatmap(corr, mask=mask, cmap=cmap, vmax=.3, center=0, square=True, linewidths=.5, cbar_kws={"shrink": .5})
 plt.tight_layout()
-#plt.show()
+plt.show()
 
 # Perform feature selection
 selector = SelectKBest(chi2, k=3)
@@ -250,7 +250,7 @@ plt.xlabel('Chi2 Value')
 ax = plt.gca()
 ax.spines['right'].set_visible(False)
 ax.spines['top'].set_visible(False)
-#plt.show()
+plt.show()
 
 # This code block scales and transforms features into normally distributed data
 # Without the normalization, our MLP algorithm throws errors
@@ -278,13 +278,9 @@ for k_best in range(1,11):
     test_results = pd.concat([hand_history.loc[highest_train_row:, 'Action_raises'].reset_index(drop=True), ML_results],axis=1)
     ML_error = 1-test_results[test_results.iloc[:,0] == test_results.iloc[:,1]].shape[0] / test_results.shape[0]
     error_tracker.append(ML_error)
-    print((datetime.datetime.now()-start).total_seconds())
     speed_tracker.append((datetime.datetime.now()-start).total_seconds())
 
-print(error_tracker)
-print(speed_tracker)
-
-plt.plot(speed_tracker, error_tracker)
+plt.scatter(speed_tracker, error_tracker)
 plt.tight_layout()
 plt.xlabel('Computational Speed (seconds)')
 ax = plt.gca()
