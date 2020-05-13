@@ -1,0 +1,2 @@
+image = sk.imread("/kaggle/input/png-for-steg/bald-eagle-png-transparent-image-pngpix-7.png")
+

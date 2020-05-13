@@ -9,6 +9,7 @@ import seaborn as sns
 from sklearn.preprocessing import StandardScaler
 from sklearn.feature_selection import SelectKBest, chi2
 from sklearn.neural_network import MLPClassifier
+from sklearn.tree import DecisionTreeClassifier
 import datetime
 
 # Some initializations to help our ETL phase
@@ -233,6 +234,20 @@ cmap = sns.diverging_palette(220, 10, as_cmap=True)
 sns.heatmap(corr, mask=mask, cmap=cmap, vmax=.3, center=0, square=True, linewidths=.5, cbar_kws={"shrink": .5})
 plt.tight_layout()
 plt.show()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # Perform feature selection
 selector = SelectKBest(chi2, k=3)
