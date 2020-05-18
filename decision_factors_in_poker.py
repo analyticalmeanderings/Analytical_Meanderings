@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
+from rfpimp import importances
 
 # Some initializations to help our ETL phase
 player_data = pd.DataFrame()
@@ -29,7 +30,7 @@ river = ""
 raw_hands = pd.DataFrame()
 
 # Computationally intensive ETL code. The repository contains the output entitled "HANDS.csv"
-files = [str(item) for item in range(1, 20)]
+files = [str(item) for item in range(1, 2)]
 
 for file in files:
     raw_hands = raw_hands.append(
@@ -255,3 +256,7 @@ ax = plt.gca()
 ax.spines['right'].set_visible(False)
 ax.spines['top'].set_visible(False)
 plt.show()
+
+imp = importances(rf, X_valid, y_valid) # permutation
+viz = plot_importances(imp)
+viz.view()
