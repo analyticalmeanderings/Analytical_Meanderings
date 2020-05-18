@@ -8,7 +8,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
-from rfpimp import importances
 
 # Some initializations to help our ETL phase
 player_data = pd.DataFrame()
@@ -30,7 +29,7 @@ river = ""
 raw_hands = pd.DataFrame()
 
 # Computationally intensive ETL code. The repository contains the output entitled "HANDS.csv"
-files = [str(item) for item in range(1, 2)]
+files = [str(item) for item in range(1, 20)]
 
 for file in files:
     raw_hands = raw_hands.append(
@@ -218,7 +217,7 @@ features_pre = ['Value 1', 'Value 2', 'Player Suits', 'Position', 'Amount to Cal
 hand_history['actions'] = hand_history['Action']
 hand_history = pd.get_dummies(hand_history, columns=['Action'])
 
-label_cols = ['Action_raises']
+label_cols = ['Action_raises', 'Action_calls', 'Action_folds']
 labels = hand_history[label_cols]
 
 # Compute the correlation matrix
@@ -233,30 +232,44 @@ sns.heatmap(corr, mask=mask, cmap=cmap, vmax=.3, center=0, square=True, linewidt
 plt.tight_layout()
 plt.show()
 
-X_train, X_valid, y_train, y_valid = train_test_split(hand_history[features_pre], labels, test_size=0.8)
+def randomForestProcessor(data):
+    X_train, X_valid, y_train, y_valid = train_test_split(data, labels, test_size=0.8)
+    rf = RandomForestClassifier(n_estimators=100)
+    rf.fit(X_train, y_train)
+    return rf.score(X_train, y_train), rf.score(X_valid, y_valid), rf
 
-rf = RandomForestClassifier(n_estimators=100, oob_score=True)
-rf.fit(X_train, np.ravel(y_train))
-
-print('R^2 Training Score: {:.2f} \nOOB Score: {:.2f} \nR^2 Validation Score: {:.2f}'.format(rf.score(X_train, y_train),
-      rf.oob_score_, rf.score(X_valid, y_valid)))
-
-# Perform feature selection
-dfscores = pd.DataFrame(rf.feature_importances_)
+base_train_acc, base_test_acc, model = randomForestProcessor(hand_history[features_pre])
+dfscores = pd.DataFrame(model.feature_importances_)
 dfcolumns = pd.DataFrame(hand_history[features_pre].columns)
 featureScores = pd.concat([dfcolumns, dfscores], axis=1)
-featureScores.columns = ['Feature', 'Score']
-featureScores = featureScores.sort_values(by=['Score'])
+featureScores.columns = ['Feature', 'Gini Importance']
+featureScores = featureScores.sort_values(by=['Gini Importance'])
 y_pos = np.arange(len(featureScores['Feature']))
-plt.barh(y_pos, featureScores['Score'])
+plt.barh(y_pos, featureScores['Gini Importance'])
 plt.yticks(y_pos, featureScores['Feature'])
+plt.rc('xtick', labelsize=20)
+plt.rc('ytick', labelsize=20)
 plt.tight_layout()
-plt.xlabel('Chi2 Value')
+plt.xlabel('Gini Importance')
 ax = plt.gca()
 ax.spines['right'].set_visible(False)
 ax.spines['top'].set_visible(False)
 plt.show()
 
-imp = importances(rf, X_valid, y_valid) # permutation
-viz = plot_importances(imp)
-viz.view()
+error_tracker = pd.DataFrame()
+for col in features_pre:
+    data = hand_history[features_pre].drop(columns=col)
+    train_acc, test_acc, model = randomForestProcessor(data)
+    instance = {"Feature": col, "Change in Accuracy": test_acc-base_test_acc}
+    error_tracker = error_tracker.append(instance, ignore_index=True)
+error_tracker = error_tracker.sort_values(by=['Change in Accuracy'])
+y_pos = np.arange(len(features_pre))
+plt.barh(y_pos, error_tracker['Change in Accuracy'])
+plt.yticks(y_pos, error_tracker['Feature'])
+plt.tight_layout()
+plt.ylabel('Dropped Feature')
+plt.xlabel('Change in Accuracy')
+ax = plt.gca()
+ax.spines['right'].set_visible(False)
+ax.spines['top'].set_visible(False)
+plt.show()
