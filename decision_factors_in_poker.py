@@ -6,11 +6,8 @@ import math
 import collections
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.preprocessing import StandardScaler
-from sklearn.feature_selection import SelectKBest, chi2
-from sklearn.neural_network import MLPClassifier
-from sklearn.tree import DecisionTreeClassifier
-import datetime
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
 
 # Some initializations to help our ETL phase
 player_data = pd.DataFrame()
@@ -31,7 +28,7 @@ turn = ""
 river = ""
 raw_hands = pd.DataFrame()
 
-# Computationaly intensive ETL code. The repository contains the output entitled "HANDS.csv"
+# Computationally intensive ETL code. The repository contains the output entitled "HANDS.csv"
 files = [str(item) for item in range(1, 20)]
 
 for file in files:
@@ -235,24 +232,16 @@ sns.heatmap(corr, mask=mask, cmap=cmap, vmax=.3, center=0, square=True, linewidt
 plt.tight_layout()
 plt.show()
 
+X_train, X_valid, y_train, y_valid = train_test_split(hand_history[features_pre], labels, test_size=0.8)
 
+rf = RandomForestClassifier(n_estimators=100, oob_score=True)
+rf.fit(X_train, np.ravel(y_train))
 
-
-
-
-
-
-
-
-
-
-
-
+print('R^2 Training Score: {:.2f} \nOOB Score: {:.2f} \nR^2 Validation Score: {:.2f}'.format(rf.score(X_train, y_train),
+      rf.oob_score_, rf.score(X_valid, y_valid)))
 
 # Perform feature selection
-selector = SelectKBest(chi2, k=3)
-fit = selector.fit(hand_history[features_pre], labels)
-dfscores = pd.DataFrame(fit.scores_)
+dfscores = pd.DataFrame(rf.feature_importances_)
 dfcolumns = pd.DataFrame(hand_history[features_pre].columns)
 featureScores = pd.concat([dfcolumns, dfscores], axis=1)
 featureScores.columns = ['Feature', 'Score']
@@ -262,57 +251,6 @@ plt.barh(y_pos, featureScores['Score'])
 plt.yticks(y_pos, featureScores['Feature'])
 plt.tight_layout()
 plt.xlabel('Chi2 Value')
-ax = plt.gca()
-ax.spines['right'].set_visible(False)
-ax.spines['top'].set_visible(False)
-plt.show()
-
-# This code block scales and transforms features into normally distributed data
-# Without the normalization, our MLP algorithm throws errors
-scaler = StandardScaler()
-scaler = scaler.fit(hand_history[features_pre])
-standardized = scaler.transform(hand_history[features_pre])
-standardized = pd.DataFrame(standardized, columns=[features_pre])
-
-highest_train_row = int(hand_history.shape[0] * .80)
-train_x = standardized[0:highest_train_row]
-test_x = standardized[highest_train_row:]
-train_y = labels[0:highest_train_row]
-test_y = labels[highest_train_row:]
-
-speed_tracker = []
-error_tracker = []
-
-for k_best in range(1,11):
-    start = datetime.datetime.now()
-    features = list(featureScores[-1*k_best:]['Feature'])
-    mlp = MLPClassifier(hidden_layer_sizes=(100, 100), activation='logistic', max_iter=2000)
-    mlp.fit(train_x[features], train_y.values.ravel())
-    predictions = mlp.predict(test_x[features])
-    ML_results = pd.DataFrame(predictions)
-    test_results = pd.concat([hand_history.loc[highest_train_row:, 'Action_raises'].reset_index(drop=True), ML_results],axis=1)
-    ML_error = 1-test_results[test_results.iloc[:,0] == test_results.iloc[:,1]].shape[0] / test_results.shape[0]
-    error_tracker.append(ML_error)
-    speed_tracker.append((datetime.datetime.now()-start).total_seconds())
-
-plt.scatter(speed_tracker, error_tracker)
-
-index = 0
-for speed, error in zip(speed_tracker, error_tracker):
-    index += 1
-    label = "{} Feature(s)".format(index)
-
-    # this method is called for each point
-    plt.annotate(label, # this is the text
-                 (speed, error), # this is the point to label
-                 textcoords="offset points", # how to position the text
-                 xytext=(0, 10), # distance from text to points (x,y)
-                 ha='center') # horizontal alignment can be left, right or center
-
-plt.tight_layout()
-plt.xlabel('Computational Speed (seconds)')
-plt.ylabel('Error')
-plt.tight_layout()
 ax = plt.gca()
 ax.spines['right'].set_visible(False)
 ax.spines['top'].set_visible(False)
