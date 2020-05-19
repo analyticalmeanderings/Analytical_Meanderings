@@ -241,7 +241,7 @@ features_post = features_pre + ['Value Flop1', 'Value Flop2', 'Value Flop3','Com
 features_turn = features_post + ['Value Turn']
 features_river = features_turn + ['Value River']
 
-model_features = {'preflop':features_pre, 'flop':features_post, 'turn':features_turn, 'river':features_river}
+model_features = {'preflop': features_pre, 'flop': features_post, 'turn': features_turn, 'river': features_river}
 
 hero_view['actions'] = hero_view['Action']
 hero_view = pd.get_dummies(hero_view, columns=['Action'])
