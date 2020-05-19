@@ -212,7 +212,7 @@ hand_history['Player Suits'] = hand_history['Player Suits'].apply(suit_counter)
 hand_history['Raise Amount'] = hand_history['Amount'] - hand_history['Amount to Call']
 hand_history['Raise Amount'] = hand_history['Raise Amount'].fillna(0)
 features_pre = ['Value 1', 'Value 2', 'Player Suits', 'Position', 'Amount to Call', 'Pot Size', 'Active',
-                'Invested Pre Action', 'Starting Stack', 'Game ID']
+                 'Invested Pre Action', 'Starting Stack', 'Game ID']
 
 hand_history['actions'] = hand_history['Action']
 hand_history = pd.get_dummies(hand_history, columns=['Action'])
@@ -232,13 +232,16 @@ sns.heatmap(corr, mask=mask, cmap=cmap, vmax=.3, center=0, square=True, linewidt
 plt.tight_layout()
 plt.show()
 
-def randomForestProcessor(data):
-    X_train, X_valid, y_train, y_valid = train_test_split(data, labels, test_size=0.8)
-    rf = RandomForestClassifier(n_estimators=100)
-    rf.fit(X_train, y_train)
-    return rf.score(X_train, y_train), rf.score(X_valid, y_valid), rf
 
-base_train_acc, base_test_acc, model = randomForestProcessor(hand_history[features_pre])
+def random_forest_processor(data):
+    x_train, x_valid, y_train, y_valid = train_test_split(data, labels, test_size=0.8)
+    rf = RandomForestClassifier(n_estimators=100)
+    rf.fit(x_train, y_train)
+    print(rf.score(x_valid, y_valid))
+    return rf.score(x_train, y_train), rf.score(x_valid, y_valid), rf
+
+
+base_train_acc, base_test_acc, model = random_forest_processor(hand_history[features_pre])
 dfscores = pd.DataFrame(model.feature_importances_)
 dfcolumns = pd.DataFrame(hand_history[features_pre].columns)
 featureScores = pd.concat([dfcolumns, dfscores], axis=1)
@@ -247,11 +250,10 @@ featureScores = featureScores.sort_values(by=['Gini Importance'])
 y_pos = np.arange(len(featureScores['Feature']))
 plt.barh(y_pos, featureScores['Gini Importance'])
 plt.yticks(y_pos, featureScores['Feature'])
-plt.rc('xtick', labelsize=20)
-plt.rc('ytick', labelsize=20)
 plt.tight_layout()
-plt.xlabel('Gini Importance')
 ax = plt.gca()
+ax.tick_params(labelsize=20)
+plt.xlabel('Gini Importance', fontsize=20)
 ax.spines['right'].set_visible(False)
 ax.spines['top'].set_visible(False)
 plt.show()
@@ -259,7 +261,7 @@ plt.show()
 error_tracker = pd.DataFrame()
 for col in features_pre:
     data = hand_history[features_pre].drop(columns=col)
-    train_acc, test_acc, model = randomForestProcessor(data)
+    train_acc, test_acc, model = random_forest_processor(data)
     instance = {"Feature": col, "Change in Accuracy": test_acc-base_test_acc}
     error_tracker = error_tracker.append(instance, ignore_index=True)
 error_tracker = error_tracker.sort_values(by=['Change in Accuracy'])
@@ -267,9 +269,10 @@ y_pos = np.arange(len(features_pre))
 plt.barh(y_pos, error_tracker['Change in Accuracy'])
 plt.yticks(y_pos, error_tracker['Feature'])
 plt.tight_layout()
-plt.ylabel('Dropped Feature')
-plt.xlabel('Change in Accuracy')
+plt.ylabel('Dropped Feature', fontsize=20)
+plt.xlabel('Change in Accuracy', fontsize=20)
 ax = plt.gca()
+ax.tick_params(labelsize=20)
 ax.spines['right'].set_visible(False)
 ax.spines['top'].set_visible(False)
 plt.show()
