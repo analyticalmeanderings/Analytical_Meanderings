@@ -232,7 +232,7 @@ sns.heatmap(corr, mask=mask, cmap=cmap, vmax=.3, center=0, square=True, linewidt
 plt.tight_layout()
 plt.show()
 
-
+# This function generates a Random Forest with 100 estimators
 def random_forest_processor(data):
     x_train, x_valid, y_train, y_valid = train_test_split(data, labels, test_size=0.8)
     rf = RandomForestClassifier(n_estimators=100)
