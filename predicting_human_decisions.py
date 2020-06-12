@@ -308,8 +308,7 @@ mask = np.triu(np.ones_like(corr, dtype=np.bool))
 cmap = sns.diverging_palette(220, 10, as_cmap=True)
 
 # Draw the heatmap with the mask and correct aspect ratio
-sns.heatmap(corr, mask=mask, cmap=cmap, vmax=.3, center=0,
-            square=True, linewidths=.5, cbar_kws={"shrink": .5})
+sns.heatmap(corr, mask=mask, cmap=cmap)
 plt.show()
 
 pivot1 = hero_view.pivot_table(index=['Value 1', 'Value 2'], columns='actions', aggfunc='size', fill_value=0)
